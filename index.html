@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DASM Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0b1220;color:#e5e7eb;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh;line-height:1.5}
+header{background:#111a2e;border-bottom:1px solid #1e293b;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#22d3ee,#a78bfa);display:grid;place-items:center;font-weight:800;color:#0b1220;font-size:20px}
+h1{font-size:18px;margin:0}
+.sub{color:#94a3b8;font-size:12px}
+.lang{display:flex;gap:4px;background:#0b1220;border:1px solid #1e293b;border-radius:8px;padding:3px}
+.lang button{background:transparent;color:#94a3b8;border:0;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.lang button.active{background:#22d3ee33;color:#fff;box-shadow:inset 0 0 0 1px #22d3ee66}
+main{max-width:1400px;margin:0 auto;padding:20px}
+
+.demo-ov{position:fixed;inset:0;background:rgba(5,8,18,.92);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.demo-ov.hide{display:none}
+.demo-box{max-width:850px;width:100%;background:#152039;border:1px solid #2a3a5c;border-radius:16px;padding:28px;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.demo-box h2{font-size:24px;margin-bottom:6px;background:linear-gradient(90deg,#22d3ee,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.demo-box p{color:#94a3b8;margin:8px 0}
+.demo-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:16px 0}
+.demo-step{background:#0b1220;border:1px solid #1e293b;border-radius:10px;padding:12px}
+.demo-step .n{display:inline-block;width:22px;height:22px;background:#22d3ee;color:#0b1220;border-radius:50%;text-align:center;line-height:22px;font-weight:800;margin-right:6px;font-size:12px}
+.demo-step strong{display:block;margin-bottom:4px;font-size:13px;color:#e5e7eb}
+.demo-step span{color:#94a3b8;font-size:12px}
+.btn{background:linear-gradient(135deg,#22d3ee,#0ea5e9);color:#001018;font-weight:700;border:0;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:14px;margin-right:6px}
+.btn.sec{background:#1e293b;color:#e5e7eb}
+
+.stepper{display:flex;gap:6px;overflow-x:auto;padding:10px 0;margin-bottom:16px}
+.stepper button{flex:0 0 auto;background:#0b1220;border:1px solid #1e293b;color:#94a3b8;padding:9px 12px;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.stepper button .i{width:20px;height:20px;border-radius:50%;background:#1e293b;display:grid;place-items:center;font-size:11px}
+.stepper button.active{border-color:#22d3ee;color:#e5e7eb}
+.stepper button.active .i{background:#22d3ee;color:#001018}
+
+.grid{display:grid;grid-template-columns:300px 1fr;gap:16px}
+@media (max-width:960px){.grid{grid-template-columns:1fr}}
+.panel{background:#152039;border:1px solid #22304e;border-radius:12px;padding:14px;margin-bottom:12px}
+.panel h3{font-size:14px;margin-bottom:10px;color:#cbd5e1;display:flex;align-items:center;gap:8px}
+.panel h3::before{content:"";width:6px;height:6px;border-radius:50%;background:#22d3ee;box-shadow:0 0 8px #22d3ee}
+.panel h4{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin:10px 0 5px}
+.row{margin-bottom:10px}
+.row label{font-size:12px;color:#94a3b8;display:flex;justify-content:space-between;margin-bottom:4px}
+.row label b{color:#e5e7eb}
+.row input[type=range]{width:100%;accent-color:#22d3ee}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:4px}
+.seg button{background:#0b1220;border:1px solid #1e293b;color:#94a3b8;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600}
+.seg button.active{background:#22d3ee33;color:#fff;border-color:#22d3ee66}
+
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.kpi{background:#0b1220;border:1px solid #1e293b;border-radius:8px;padding:8px 10px}
+.kpi .k{font-size:10px;color:#94a3b8;text-transform:uppercase}
+.kpi .v{font-size:18px;font-weight:800;margin-top:2px}
+.kpi .v .u{font-size:11px;color:#94a3b8;margin-left:3px;font-weight:400}
+
+.step-content{display:none}
+.step-content.active{display:block}
+.lesson{background:#0b1220;border:1px solid #1e293b;border-radius:10px;padding:14px;color:#cbd5e1;font-size:13px;line-height:1.6}
+.lesson h4{color:#e5e7eb;margin:10px 0 5px;font-size:14px}
+.lesson p{margin:5px 0}
+.lesson ul{margin-left:20px;margin-top:4px}
+.lesson li{margin:2px 0}
+.formula{background:#152039;padding:8px 10px;border-radius:6px;border-left:3px solid #22d3ee;font-family:monospace;margin:6px 0;font-size:12px;color:#e5e7eb}
+.tag{display:inline-block;background:#1e293b;color:#22d3ee;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-right:4px}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:800px){.two-col{grid-template-columns:1fr}}
+
+canvas{width:100%;display:block;background:#070c18;border-radius:8px;border:1px solid #1e293b}
+.cap{font-size:11px;color:#94a3b8;margin-top:5px;text-align:center}
+
+.scope-ctrl{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;font-size:12px;color:#94a3b8}
+.scope-ctrl label{display:flex;align-items:center;gap:3px;cursor:pointer}
+.scope-ctrl input{accent-color:#22d3ee}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:2px}
+
+.nav{display:flex;justify-content:space-between;margin-top:14px}
+.badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-top:8px}
+.badge.ok{background:#064e3b;color:#34d399}
+.badge.warn{background:#78350f;color:#fbbf24}
+.badge.off{background:#7f1d1d;color:#f87171}
+.footer{text-align:center;color:#94a3b8;font-size:11px;margin:20px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">&#937;</div>
+    <div>
+      <h1 data-t="brand">DASM Dashboard</h1>
+      <div class="sub" data-t="tagline">Drehstromasynchronmaschine</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn sec" id="homeBtn" title="Home" style="padding:8px 14px;font-size:13px">&#8962; <span data-t="home">Home</span></button>
+    <div class="lang">
+      <button data-lang="de" class="active">DE</button>
+      <button data-lang="fr">FR</button>
+      <button data-lang="en">EN</button>
+    </div>
+  </div>
+</header>
+
+<div class="demo-ov" id="demoOv">
+  <div class="demo-box">
+    <h2 data-t="demo_title">Willkommen</h2>
+    <p data-t="demo_intro">Dieses Dashboard erklaert die Funktionsweise einer Drehstromasynchronmaschine - Schritt fuer Schritt, interaktiv mit Live-Simulation.</p>
+    <div class="demo-steps">
+      <div class="demo-step"><span class="n">1</span><strong data-t="ds1t">Sprache</strong><span data-t="ds1d">DE / FR / EN oben rechts</span></div>
+      <div class="demo-step"><span class="n">2</span><strong data-t="ds2t">Schritte</strong><span data-t="ds2d">9 Lerneinheiten durchgehen</span></div>
+      <div class="demo-step"><span class="n">3</span><strong data-t="ds3t">Varianten</strong><span data-t="ds3d">Kaefig/Schleifring, Stern/Dreieck</span></div>
+      <div class="demo-step"><span class="n">4</span><strong data-t="ds4t">Parameter</strong><span data-t="ds4d">U, f, M live regeln</span></div>
+      <div class="demo-step"><span class="n">5</span><strong data-t="ds5t">Kurven</strong><span data-t="ds5d">M(n), I(n), Wirkungsgrad</span></div>
+      <div class="demo-step"><span class="n">6</span><strong data-t="ds6t">Oszilloskop</strong><span data-t="ds6d">Spannungen und Stroeme</span></div>
+    </div>
+    <button class="btn" id="startBtn" data-t="start">App starten</button>
+    <button class="btn sec" id="demoBtn" data-t="autodemo">Auto-Demo</button>
+  </div>
+</div>
+
+<main>
+  <div class="stepper" id="stepper">
+    <button data-step="0" class="active"><span class="i">1</span><span data-t="s1">Grundlagen</span></button>
+    <button data-step="1"><span class="i">2</span><span data-t="s2">Aufbau</span></button>
+    <button data-step="2"><span class="i">3</span><span data-t="s3">Drehfeld</span></button>
+    <button data-step="3"><span class="i">4</span><span data-t="s4">Funktion</span></button>
+    <button data-step="4"><span class="i">5</span><span data-t="s5">Varianten</span></button>
+    <button data-step="5"><span class="i">6</span><span data-t="s6">Anlauf</span></button>
+    <button data-step="6"><span class="i">7</span><span data-t="s7">Kennlinien</span></button>
+    <button data-step="7"><span class="i">8</span><span data-t="s8">Oszilloskop</span></button>
+    <button data-step="8"><span class="i">9</span><span data-t="s9">FU</span></button>
+  </div>
+
+  <div class="grid">
+    <aside>
+      <div class="panel">
+        <h3 data-t="p_var">Variante</h3>
+        <h4 data-t="p_rotor">Rotortyp</h4>
+        <div class="seg" id="rotorSeg">
+          <button data-v="cage" class="active" data-t="r_cage">Kaefiglaeufer</button>
+          <button data-v="slip" data-t="r_slip">Schleifring</button>
+        </div>
+        <h4 data-t="p_conn">Schaltung</h4>
+        <div class="seg" id="connSeg">
+          <button data-v="star" class="active">Stern Y</button>
+          <button data-v="delta">Dreieck D</button>
+        </div>
+        <h4 data-t="p_poles">Polpaarzahl p</h4>
+        <div class="seg" id="poleSeg">
+          <button data-v="1" class="active">p=1</button>
+          <button data-v="2">p=2</button>
+          <button data-v="3">p=3</button>
+          <button data-v="4">p=4</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 data-t="p_params">Regelparameter</h3>
+        <div class="row">
+          <label><span data-t="p_u">Spannung U</span><b><span id="vU">400</span> V</b></label>
+          <input type="range" id="inU" min="100" max="500" step="10" value="400">
+        </div>
+        <div class="row">
+          <label><span data-t="p_f">Frequenz f</span><b><span id="vF">50</span> Hz</b></label>
+          <input type="range" id="inF" min="5" max="100" step="1" value="50">
+        </div>
+        <div class="row">
+          <label><span data-t="p_ml">Lastmoment M</span><b><span id="vML">40</span> Nm</b></label>
+          <input type="range" id="inML" min="0" max="300" step="1" value="40">
+        </div>
+        <div class="row">
+          <label><span data-t="p_r2">R2 (Schleifring)</span><b><span id="vR2">1.0</span>x</b></label>
+          <input type="range" id="inR2" min="1" max="5" step="0.1" value="1">
+        </div>
+        <div class="seg">
+          <button id="btnOn" class="active" data-t="on">EIN</button>
+          <button id="btnOff" data-t="off">AUS</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 data-t="p_kpi">Live-Daten</h3>
+        <div class="kpis">
+          <div class="kpi"><div class="k" data-t="k_ns">Sync n_S</div><div class="v"><span id="kNs">3000</span><span class="u">U/min</span></div></div>
+          <div class="kpi"><div class="k" data-t="k_n">Drehzahl</div><div class="v"><span id="kN">0</span><span class="u">U/min</span></div></div>
+          <div class="kpi"><div class="k" data-t="k_s">Schlupf</div><div class="v"><span id="kS">100</span><span class="u">%</span></div></div>
+          <div class="kpi"><div class="k" data-t="k_m">Moment</div><div class="v"><span id="kM">0</span><span class="u">Nm</span></div></div>
+          <div class="kpi"><div class="k" data-t="k_i">Strom</div><div class="v"><span id="kI">0</span><span class="u">A</span></div></div>
+          <div class="kpi"><div class="k" data-t="k_p">Leistung</div><div class="v"><span id="kP">0</span><span class="u">kW</span></div></div>
+          <div class="kpi"><div class="k" data-t="k_eta">Eta</div><div class="v"><span id="kEta">0</span><span class="u">%</span></div></div>
+          <div class="kpi"><div class="k" data-t="k_cos">cos phi</div><div class="v"><span id="kCos">0</span></div></div>
+        </div>
+        <div id="stat" class="badge off" data-t="st_off">AUS</div>
+      </div>
+    </aside>
+
+    <section>
+      <div class="step-content active" data-step="0">
+        <div class="panel">
+          <h3 data-t="h1">Schritt 1 - Grundlagen</h3>
+          <div class="two-col">
+            <div class="lesson">
+              <p><span class="tag">Definition</span><span data-t="l1p1">Die Drehstromasynchronmaschine (DASM) ist der weltweit am haeufigsten eingesetzte Elektromotor. Sie wandelt elektrische Energie aus einem 3-Phasen-Netz in Rotation um.</span></p>
+              <h4 data-t="l1h1">Warum asynchron?</h4>
+              <p data-t="l1p2">Der Rotor dreht sich langsamer als das Drehfeld. Diese Drehzahldifferenz - der Schlupf - induziert Stroeme im Rotor und erzeugt das Drehmoment.</p>
+              <div class="formula">s = (n_S - n) / n_S * 100 %</div>
+              <div class="formula">n_S = 60 * f / p</div>
+              <h4 data-t="l1h2">Vorteile</h4>
+              <ul>
+                <li data-t="l1a1">Robust, wartungsarm, keine Buersten</li>
+                <li data-t="l1a2">Einfacher Aufbau, geringe Kosten</li>
+                <li data-t="l1a3">Wirkungsgrad 85-96 %</li>
+                <li data-t="l1a4">Selbstanlauf am Drehstromnetz</li>
+              </ul>
+            </div>
+            <div>
+              <canvas id="cvIntro" height="340"></canvas>
+              <div class="cap" data-t="c1">Drehfeld (rot) und Rotor (blau) mit Schlupf.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="1">
+        <div class="panel">
+          <h3 data-t="h2">Schritt 2 - Aufbau</h3>
+          <div class="two-col">
+            <canvas id="cvStruct" height="380"></canvas>
+            <div class="lesson">
+              <h4 data-t="l2h1">1. Stator</h4>
+              <p data-t="l2p1">Feststehender Teil mit drei um 120 Grad versetzten Wicklungen U, V, W. Blechpaket reduziert Wirbelstromverluste.</p>
+              <h4 data-t="l2h2">2. Rotor</h4>
+              <p data-t="l2p2">Kaefiglaeufer: kurzgeschlossene Al/Cu-Staebe. Schleifringlaeufer: Wicklung mit Schleifringen.</p>
+              <h4 data-t="l2h3">3. Gehaeuse, Klemmkasten</h4>
+              <p data-t="l2p3">Kuehlrippen, Ventilator, Lager, 6 Anschluesse fuer Y oder D.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="2">
+        <div class="panel">
+          <h3 data-t="h3">Schritt 3 - Drehfeld</h3>
+          <div class="two-col">
+            <div class="lesson">
+              <p data-t="l3p1">Drei um 120 Grad versetzte Wechselstroeme erzeugen ein umlaufendes Magnetfeld konstanter Amplitude (Tesla).</p>
+              <div class="formula">B(a,t) = (3/2) * B_peak * cos(wt - a)</div>
+              <p data-t="l3p2">Die Synchrondrehzahl haengt von f und p ab:</p>
+              <div class="formula">n_S = 60 * f / p</div>
+              <h4 data-t="l3h1">Drehrichtung umkehren</h4>
+              <p data-t="l3p3">Zwei Phasen vertauschen (L1 und L2) - Feld dreht umgekehrt.</p>
+            </div>
+            <div>
+              <canvas id="cvField" height="340"></canvas>
+              <div class="cap" data-t="c3">Drei Phasenvektoren und resultierendes Drehfeld.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="3">
+        <div class="panel">
+          <h3 data-t="h4">Schritt 4 - Wirkungsweise</h3>
+          <div class="two-col">
+            <canvas id="cvOp" height="340"></canvas>
+            <div class="lesson">
+              <h4 data-t="l4h1">Schritt fuer Schritt</h4>
+              <ul>
+                <li data-t="l4l1"><b>1.</b> 3 Phasen speisen Stator - Drehfeld</li>
+                <li data-t="l4l2"><b>2.</b> Drehfeld schneidet Rotorleiter</li>
+                <li data-t="l4l3"><b>3.</b> Spannung im Rotor induziert (Faraday)</li>
+                <li data-t="l4l4"><b>4.</b> Kurzschluss - Strom fliesst</li>
+                <li data-t="l4l5"><b>5.</b> Strom x Feld - Kraft (Lorentz)</li>
+                <li data-t="l4l6"><b>6.</b> Rotor folgt Feld (Lenz)</li>
+                <li data-t="l4l7"><b>7.</b> Bei n=n_S keine Induktion - kein Moment</li>
+              </ul>
+              <h4 data-t="l4h2">Klossche Formel</h4>
+              <div class="formula">M/M_K = 2 / (s/s_K + s_K/s)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="4">
+        <div class="panel">
+          <h3 data-t="h5">Schritt 5 - Varianten</h3>
+          <div class="two-col">
+            <div class="lesson">
+              <h4>Kaefiglaeufer <span class="tag">Standard</span></h4>
+              <ul>
+                <li data-t="v1">Eingegossene Al/Cu-Staebe</li>
+                <li data-t="v2">Robust, wartungsfrei</li>
+                <li data-t="v3">Hoher Anlaufstrom</li>
+                <li data-t="v4">Pumpen, Luefter</li>
+              </ul>
+              <h4>Schleifringlaeufer <span class="tag">Regelbar</span></h4>
+              <ul>
+                <li data-t="v5">Rotorwicklung ueber Schleifringe</li>
+                <li data-t="v6">Externe Widerstaende</li>
+                <li data-t="v7">Hoeheres Anlaufmoment</li>
+                <li data-t="v8">Kraene, Aufzuege</li>
+              </ul>
+            </div>
+            <div class="lesson">
+              <h4>Stern Y</h4>
+              <ul>
+                <li>U_str = U_N / sqrt(3)</li>
+                <li data-t="v9">Kleiner Anlaufstrom</li>
+                <li data-t="v10">1/3 Anzugsmoment</li>
+              </ul>
+              <h4>Dreieck D</h4>
+              <ul>
+                <li>U_str = U_N</li>
+                <li>I_L = sqrt(3) * I_str</li>
+                <li data-t="v11">Volle Leistung</li>
+              </ul>
+              <h4 data-t="v12h">Stern-Dreieck</h4>
+              <p data-t="v12">Anfahren in Y, Umschalten auf D bei 80% n_N. Reduziert Anlaufstrom auf 1/3.</p>
+            </div>
+          </div>
+          <canvas id="cvVar" height="280" style="margin-top:12px"></canvas>
+          <div class="cap" data-t="c5">Vergleich der Momentkennlinien.</div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="5">
+        <div class="panel">
+          <h3 data-t="h6">Schritt 6 - Anlaufverfahren</h3>
+          <div class="seg" id="startSeg" style="margin-bottom:12px">
+            <button data-v="direct" class="active" data-t="m_dir">Direkt</button>
+            <button data-v="yd" data-t="m_yd">Y/D</button>
+            <button data-v="soft" data-t="m_soft">Softstarter</button>
+            <button data-v="fu" data-t="m_fu">FU</button>
+            <button data-v="rotor" data-t="m_rot">Rotor R</button>
+          </div>
+          <div class="two-col">
+            <div class="lesson" id="startInfo"></div>
+            <div>
+              <canvas id="cvStart" height="340"></canvas>
+              <div class="cap" data-t="c6">Strom und Moment beim Anlauf.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="6">
+        <div class="panel">
+          <h3 data-t="h7">Schritt 7 - Kennlinien</h3>
+          <div class="two-col">
+            <div>
+              <canvas id="cvTorque" height="320"></canvas>
+              <div class="cap" data-t="c7a">M(n)-Kennlinie mit Arbeitspunkt.</div>
+            </div>
+            <div>
+              <canvas id="cvCurrent" height="320"></canvas>
+              <div class="cap" data-t="c7b">I(n), Eta(n), cos phi(n).</div>
+            </div>
+          </div>
+          <div class="lesson" style="margin-top:12px">
+            <p data-t="l7p">Der Arbeitspunkt ist der Schnittpunkt von Motor- und Lastkennlinie.</p>
+            <div class="formula">M_K ~ 2-3 * M_N | I_A ~ 5-8 * I_N | s_N ~ 2-6 %</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="7">
+        <div class="panel">
+          <h3 data-t="h8">Schritt 8 - Oszilloskop</h3>
+          <div class="two-col">
+            <div>
+              <canvas id="cvScope" height="280"></canvas>
+              <div class="scope-ctrl">
+                <label><input type="checkbox" id="chU" checked><span class="dot" style="background:#ef4444"></span>U_R</label>
+                <label><input type="checkbox" id="chV" checked><span class="dot" style="background:#10b981"></span>U_S</label>
+                <label><input type="checkbox" id="chW" checked><span class="dot" style="background:#3b82f6"></span>U_T</label>
+                <label><input type="checkbox" id="chSum"><span class="dot" style="background:#fff"></span><span data-t="sum">Summe</span></label>
+                <label><input type="checkbox" id="chI"><span class="dot" style="background:#fbbf24"></span>I_R</label>
+              </div>
+              <div class="cap" data-t="c8a">3 Phasenspannungen, 120 Grad versetzt.</div>
+            </div>
+            <div>
+              <canvas id="cvPhasor" height="280"></canvas>
+              <div class="cap" data-t="c8b">Zeigerdiagramm mit cos phi.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-content" data-step="8">
+        <div class="panel">
+          <h3 data-t="h9">Schritt 9 - Frequenzumrichter</h3>
+          <div class="two-col">
+            <div class="lesson">
+              <p data-t="l9p1">Mit einem Frequenzumrichter wird die Drehzahl stufenlos geregelt. U/f bleibt konstant.</p>
+              <div class="formula">U/f = const - Phi = const - M_K = const</div>
+              <h4 data-t="l9h1">Bereiche</h4>
+              <ul>
+                <li data-t="l9l1"><b>Grundstellbereich:</b> U ~ f, M konstant</li>
+                <li data-t="l9l2"><b>Feldschwaechbereich:</b> U=U_N, M faellt mit 1/n</li>
+              </ul>
+              <p data-t="l9p2">Schiebe f und U links und beobachte.</p>
+            </div>
+            <div>
+              <canvas id="cvVFD" height="340"></canvas>
+              <div class="cap" data-t="c9">Kennlinienschar M(n) fuer verschiedene f.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button class="btn sec" id="prev" data-t="prev">Zurueck</button>
+        <button class="btn" id="next" data-t="next">Weiter</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">DASM Dashboard - <span data-t="foot">Didaktisches Werkzeug</span></div>
+</main>
+
+<script>
+"use strict";
+
+var I18N = {
+  de: {
+    brand:"DASM Dashboard", tagline:"Drehstromasynchronmaschine",
+    demo_title:"Willkommen im DASM-Dashboard",
+    demo_intro:"Dieses Dashboard erklaert die Funktionsweise einer Drehstromasynchronmaschine - Schritt fuer Schritt, interaktiv mit Live-Simulation.",
+    ds1t:"Sprache", ds1d:"DE / FR / EN oben rechts",
+    ds2t:"Schritte", ds2d:"9 Lerneinheiten durchgehen",
+    ds3t:"Varianten", ds3d:"Kaefig/Schleifring, Stern/Dreieck",
+    ds4t:"Parameter", ds4d:"U, f, M live regeln",
+    ds5t:"Kurven", ds5d:"M(n), I(n), Wirkungsgrad",
+    ds6t:"Oszilloskop", ds6d:"Spannungen und Stroeme",
+    start:"App starten", autodemo:"Auto-Demo", home:"Home",
+    s1:"Grundlagen", s2:"Aufbau", s3:"Drehfeld", s4:"Funktion", s5:"Varianten", s6:"Anlauf", s7:"Kennlinien", s8:"Oszilloskop", s9:"FU",
+    p_var:"Variante", p_rotor:"Rotortyp", r_cage:"Kaefiglaeufer", r_slip:"Schleifring",
+    p_conn:"Schaltung", p_poles:"Polpaarzahl p",
+    p_params:"Regelparameter", p_u:"Spannung U", p_f:"Frequenz f", p_ml:"Lastmoment M", p_r2:"R2 Schleifring",
+    on:"EIN", off:"AUS",
+    p_kpi:"Live-Daten", k_ns:"Sync n_S", k_n:"Drehzahl", k_s:"Schlupf", k_m:"Moment", k_i:"Strom", k_p:"Leistung", k_eta:"Eta", k_cos:"cos phi",
+    st_ok:"Betrieb stabil", st_warn:"Kippgrenze", st_off:"Maschine AUS",
+    prev:"Zurueck", next:"Weiter", foot:"Didaktisches Werkzeug",
+    h1:"Schritt 1 - Grundlagen",
+    l1p1:"Die Drehstromasynchronmaschine ist der weltweit am haeufigsten eingesetzte Elektromotor. Sie wandelt 3-Phasen-Strom in Rotation um - ohne Verbindung zum Rotor beim Kaefiglaeufer.",
+    l1h1:"Warum asynchron?",
+    l1p2:"Der Rotor dreht langsamer als das Drehfeld. Diese Differenz - der Schlupf - induziert Stroeme im Rotor und erzeugt das Drehmoment.",
+    l1h2:"Vorteile", l1a1:"Robust, wartungsarm, keine Buersten", l1a2:"Einfacher Aufbau, geringe Kosten", l1a3:"Wirkungsgrad 85-96 %", l1a4:"Selbstanlauf am Drehstromnetz",
+    c1:"Drehfeld (rot) und Rotor (blau) mit Schlupf.",
+    h2:"Schritt 2 - Aufbau",
+    l2h1:"1. Stator", l2p1:"Feststehender Teil mit drei um 120 Grad versetzten Wicklungen U, V, W. Blechpaket reduziert Wirbelstromverluste.",
+    l2h2:"2. Rotor", l2p2:"Kaefiglaeufer: kurzgeschlossene Al/Cu-Staebe. Schleifringlaeufer: Wicklung mit Schleifringen.",
+    l2h3:"3. Gehaeuse, Klemmkasten", l2p3:"Kuehlrippen, Ventilator, Lager, 6 Anschluesse fuer Y oder D.",
+    h3:"Schritt 3 - Drehfeld",
+    l3p1:"Drei um 120 Grad versetzte Wechselstroeme erzeugen ein umlaufendes Magnetfeld konstanter Amplitude.",
+    l3p2:"Die Synchrondrehzahl haengt von f und p ab:",
+    l3h1:"Drehrichtung umkehren", l3p3:"Zwei Phasen vertauschen - Feld dreht umgekehrt.",
+    c3:"Drei Phasenvektoren und resultierendes Drehfeld.",
+    h4:"Schritt 4 - Wirkungsweise", l4h1:"Schritt fuer Schritt",
+    l4l1:"<b>1.</b> 3 Phasen speisen Stator - Drehfeld", l4l2:"<b>2.</b> Drehfeld schneidet Rotorleiter", l4l3:"<b>3.</b> Spannung im Rotor induziert",
+    l4l4:"<b>4.</b> Kurzschluss - Strom fliesst", l4l5:"<b>5.</b> Strom x Feld - Kraft", l4l6:"<b>6.</b> Rotor folgt Feld",
+    l4l7:"<b>7.</b> Bei n=n_S keine Induktion - kein Moment",
+    l4h2:"Klossche Formel",
+    h5:"Schritt 5 - Varianten",
+    v1:"Eingegossene Al/Cu-Staebe", v2:"Robust, wartungsfrei", v3:"Hoher Anlaufstrom", v4:"Pumpen, Luefter",
+    v5:"Rotorwicklung ueber Schleifringe", v6:"Externe Widerstaende", v7:"Hoeheres Anlaufmoment", v8:"Kraene, Aufzuege",
+    v9:"Kleiner Anlaufstrom", v10:"1/3 Anzugsmoment", v11:"Volle Leistung",
+    v12h:"Stern-Dreieck Anlauf", v12:"Anfahren in Y, Umschalten auf D bei 80% n_N.",
+    c5:"Vergleich der Momentkennlinien.",
+    h6:"Schritt 6 - Anlaufverfahren",
+    m_dir:"Direkt", m_yd:"Y/D", m_soft:"Softstarter", m_fu:"FU", m_rot:"Rotor R",
+    c6:"Strom und Moment beim Anlauf.",
+    start_direct:"<h4>Direktanlauf</h4><p>Maschine direkt an volle Netzspannung.</p><ul><li>Kleine Motoren unter 4 kW</li><li>Maximales Moment sofort</li><li>Hohe Netzbelastung</li></ul>",
+    start_yd:"<h4>Stern-Dreieck</h4><p>Anfahren in Y, Umschalten auf D bei 80% n_N.</p><ul><li>Klassisch fuer 4-50 kW</li><li>Nur bei kleiner Last</li><li>Reduziert I_A auf 1/3</li></ul>",
+    start_soft:"<h4>Softstarter</h4><p>Thyristor-Steuerung, Spannung von 30 auf 100%.</p><ul><li>Sanfter Hochlauf</li><li>Keine Drehzahlregelung</li><li>Guenstiger als FU</li></ul>",
+    start_fu:"<h4>Frequenzumrichter</h4><p>f und U zusammen hochgefahren (U/f=const).</p><ul><li>Beste Methode</li><li>Drehzahlregelung inklusive</li><li>I_A ~ I_N</li></ul>",
+    start_rotor:"<h4>Rotorwiderstand</h4><p>Nur Schleifringlaeufer: externe Widerstaende.</p><ul><li>Hohes Moment bei kleinem Strom</li><li>Kraene, Aufzuege</li></ul>",
+    h7:"Schritt 7 - Kennlinien", c7a:"M(n) mit Arbeitspunkt.", c7b:"I, Eta, cos phi.",
+    l7p:"Der Arbeitspunkt ist der Schnittpunkt von Motor- und Lastkennlinie.",
+    h8:"Schritt 8 - Oszilloskop", sum:"Summe", c8a:"3 Phasenspannungen 120 Grad versetzt.", c8b:"Zeigerdiagramm mit cos phi.",
+    h9:"Schritt 9 - Frequenzumrichter",
+    l9p1:"Mit einem FU wird die Drehzahl stufenlos geregelt. U/f bleibt konstant.",
+    l9h1:"Bereiche", l9l1:"Grundstellbereich: U ~ f, M konstant", l9l2:"Feldschwaechbereich: U=U_N, M faellt mit 1/n",
+    l9p2:"Schiebe f und U links und beobachte.",
+    c9:"Kennlinienschar M(n) fuer verschiedene f."
+  },
+
+  fr: {
+    brand:"Tableau MAS", tagline:"Moteur asynchrone triphase",
+    demo_title:"Bienvenue dans le tableau MAS",
+    demo_intro:"Ce tableau de bord explique le fonctionnement d'un moteur asynchrone triphase - etape par etape, interactif.",
+    ds1t:"Langue", ds1d:"DE / FR / EN en haut a droite",
+    ds2t:"Etapes", ds2d:"9 lecons a parcourir",
+    ds3t:"Variantes", ds3d:"Cage/bagues, etoile/triangle",
+    ds4t:"Parametres", ds4d:"Tension, frequence, charge",
+    ds5t:"Courbes", ds5d:"Couple, courant, rendement",
+    ds6t:"Oscilloscope", ds6d:"Tensions et courants",
+    start:"Demarrer", autodemo:"Demo auto", home:"Accueil",
+    s1:"Bases", s2:"Construction", s3:"Champ tournant", s4:"Principe", s5:"Variantes", s6:"Demarrage", s7:"Courbes", s8:"Oscilloscope", s9:"Variateur",
+    p_var:"Variante", p_rotor:"Type rotor", r_cage:"Cage", r_slip:"Bagues",
+    p_conn:"Couplage", p_poles:"Paires de poles p",
+    p_params:"Parametres", p_u:"Tension U", p_f:"Frequence f", p_ml:"Couple M", p_r2:"R2 bagues",
+    on:"MARCHE", off:"ARRET",
+    p_kpi:"Donnees live", k_ns:"Synch n_S", k_n:"Vitesse", k_s:"Glissement", k_m:"Couple", k_i:"Courant", k_p:"Puissance", k_eta:"Eta", k_cos:"cos phi",
+    st_ok:"Fonctionnement stable", st_warn:"Decrochage", st_off:"Machine ARRETEE",
+    prev:"Precedent", next:"Suivant", foot:"Outil didactique",
+    h1:"Etape 1 - Bases",
+    l1p1:"Le moteur asynchrone triphase est le moteur le plus utilise. Il convertit l'energie triphasee en rotation, sans liaison electrique au rotor (cage).",
+    l1h1:"Pourquoi asynchrone?",
+    l1p2:"Le rotor tourne plus lentement que le champ tournant. Cette difference - le glissement - induit des courants et cree le couple.",
+    l1h2:"Avantages", l1a1:"Robuste, sans entretien, sans balais", l1a2:"Construction simple, peu couteux", l1a3:"Rendement 85-96 %", l1a4:"Demarrage autonome",
+    c1:"Champ tournant (rouge) et rotor (bleu) avec glissement.",
+    h2:"Etape 2 - Construction",
+    l2h1:"1. Stator", l2p1:"Partie fixe avec trois enroulements a 120 degres (U, V, W).",
+    l2h2:"2. Rotor", l2p2:"Cage: barres court-circuitees. Bagues: enroulements accessibles.",
+    l2h3:"3. Carcasse, bornier", l2p3:"Ailettes, ventilateur, paliers, 6 bornes pour Y ou D.",
+    h3:"Etape 3 - Champ tournant",
+    l3p1:"Trois courants decales de 120 degres produisent un champ tournant d'amplitude constante.",
+    l3p2:"La vitesse de synchronisme depend de f et p:",
+    l3h1:"Inverser le sens", l3p3:"Permuter deux phases - champ en sens inverse.",
+    c3:"Trois vecteurs de phase et champ resultant.",
+    h4:"Etape 4 - Principe", l4h1:"Etape par etape",
+    l4l1:"<b>1.</b> 3 phases - champ tournant", l4l2:"<b>2.</b> Champ coupe le rotor", l4l3:"<b>3.</b> Tension induite",
+    l4l4:"<b>4.</b> Court-circuit - courant", l4l5:"<b>5.</b> Courant x champ - force", l4l6:"<b>6.</b> Rotor suit le champ",
+    l4l7:"<b>7.</b> Si n=n_S plus de couple",
+    l4h2:"Formule de Kloss",
+    h5:"Etape 5 - Variantes",
+    v1:"Barres Al/Cu coulees", v2:"Robuste, sans entretien", v3:"Courant de demarrage eleve", v4:"Pompes, ventilateurs",
+    v5:"Enroulement par bagues", v6:"Resistances externes", v7:"Couple eleve", v8:"Grues, ascenseurs",
+    v9:"Courant reduit", v10:"1/3 du couple", v11:"Pleine puissance",
+    v12h:"Etoile-triangle", v12:"Demarrage Y, commutation D vers 80% n_N.",
+    c5:"Comparaison des courbes de couple.",
+    h6:"Etape 6 - Methodes de demarrage",
+    m_dir:"Direct", m_yd:"Y/D", m_soft:"Progressif", m_fu:"Variateur", m_rot:"R rotor",
+    c6:"Courant et couple au demarrage.",
+    start_direct:"<h4>Demarrage direct</h4><p>Machine a pleine tension.</p><ul><li>Petits moteurs</li><li>Couple max immediat</li><li>Forte sollicitation reseau</li></ul>",
+    start_yd:"<h4>Etoile-triangle</h4><p>Demarrage Y, commutation D vers 80%.</p><ul><li>Classique 4-50 kW</li><li>Charge faible</li><li>I reduit a 1/3</li></ul>",
+    start_soft:"<h4>Demarreur progressif</h4><p>Gradateur thyristors 30-100%.</p><ul><li>Demarrage doux</li><li>Pas de reglage vitesse</li><li>Moins cher</li></ul>",
+    start_fu:"<h4>Variateur</h4><p>f et U ensemble (U/f=cste).</p><ul><li>Meilleure methode</li><li>Reglage vitesse inclus</li><li>I_D ~ I_N</li></ul>",
+    start_rotor:"<h4>Resistance rotor</h4><p>Rotor bobine: resistances externes.</p><ul><li>Couple eleve</li><li>Grues, ascenseurs</li></ul>",
+    h7:"Etape 7 - Courbes", c7a:"M(n) avec point.", c7b:"I, Eta, cos phi.",
+    l7p:"Le point est l'intersection courbe moteur et charge.",
+    h8:"Etape 8 - Oscilloscope", sum:"Somme", c8a:"3 tensions dephasees 120.", c8b:"Diagramme vectoriel cos phi.",
+    h9:"Etape 9 - Variateur",
+    l9p1:"Le variateur permet un reglage continu. U/f reste constant.",
+    l9h1:"Zones", l9l1:"Zone de base: U ~ f, M cste", l9l2:"Defluxage: U=U_N, M en 1/n",
+    l9p2:"Variez f et U a gauche.",
+    c9:"Famille M(n) pour differentes f."
+  },
+
+  en: {
+    brand:"IM Dashboard", tagline:"Three-phase induction motor",
+    demo_title:"Welcome to the IM Dashboard",
+    demo_intro:"This dashboard explains how a three-phase induction motor works - step by step, interactive with live simulation.",
+    ds1t:"Language", ds1d:"DE / FR / EN top right",
+    ds2t:"Steps", ds2d:"9 lessons to walk through",
+    ds3t:"Variants", ds3d:"Cage/slip ring, star/delta",
+    ds4t:"Parameters", ds4d:"Voltage, frequency, load",
+    ds5t:"Curves", ds5d:"Torque, current, efficiency",
+    ds6t:"Oscilloscope", ds6d:"Voltages and currents",
+    start:"Start app", autodemo:"Auto-demo", home:"Home",
+    s1:"Basics", s2:"Construction", s3:"Rotating field", s4:"Operation", s5:"Variants", s6:"Starting", s7:"Curves", s8:"Oscilloscope", s9:"VFD",
+    p_var:"Variant", p_rotor:"Rotor type", r_cage:"Cage", r_slip:"Slip ring",
+    p_conn:"Connection", p_poles:"Pole pairs p",
+    p_params:"Parameters", p_u:"Voltage U", p_f:"Frequency f", p_ml:"Load M", p_r2:"R2 slip ring",
+    on:"ON", off:"OFF",
+    p_kpi:"Live data", k_ns:"Sync n_S", k_n:"Speed", k_s:"Slip", k_m:"Torque", k_i:"Current", k_p:"Power", k_eta:"Eta", k_cos:"cos phi",
+    st_ok:"Operation stable", st_warn:"Pull-out", st_off:"Machine OFF",
+    prev:"Back", next:"Next", foot:"Didactic tool",
+    h1:"Step 1 - Basics",
+    l1p1:"The three-phase induction motor is the most widely used electric motor. It converts 3-phase energy into rotation, without electrical connection to the rotor (cage).",
+    l1h1:"Why asynchronous?",
+    l1p2:"The rotor rotates slower than the field. This difference - the slip - induces currents and creates torque.",
+    l1h2:"Advantages", l1a1:"Robust, low maintenance, brushless", l1a2:"Simple, low cost", l1a3:"Efficiency 85-96%", l1a4:"Self-starting",
+    c1:"Rotating field (red) and rotor (blue) with slip.",
+    h2:"Step 2 - Construction",
+    l2h1:"1. Stator", l2p1:"Fixed part with three 120-degree windings U, V, W.",
+    l2h2:"2. Rotor", l2p2:"Cage: short-circuited Al/Cu bars. Slip ring: winding accessible.",
+    l2h3:"3. Housing, terminal box", l2p3:"Fins, fan, bearings, 6 terminals for Y or D.",
+    h3:"Step 3 - Rotating field",
+    l3p1:"Three currents 120-degrees shifted produce a rotating field of constant amplitude.",
+    l3p2:"Synchronous speed depends on f and p:",
+    l3h1:"Reverse direction", l3p3:"Swap two phases - field reverses.",
+    c3:"Three phase vectors and resultant field.",
+    h4:"Step 4 - Operation", l4h1:"Step by step",
+    l4l1:"<b>1.</b> 3 phases feed stator - field", l4l2:"<b>2.</b> Field cuts rotor", l4l3:"<b>3.</b> Voltage induced",
+    l4l4:"<b>4.</b> Short circuit - current", l4l5:"<b>5.</b> Current x field - force", l4l6:"<b>6.</b> Rotor follows field",
+    l4l7:"<b>7.</b> If n=n_S no torque",
+    l4h2:"Kloss formula",
+    h5:"Step 5 - Variants",
+    v1:"Cast Al/Cu bars", v2:"Robust, maintenance-free", v3:"High starting current", v4:"Pumps, fans",
+    v5:"Rotor via slip rings", v6:"External resistors", v7:"Higher torque", v8:"Cranes, elevators",
+    v9:"Lower starting current", v10:"1/3 pull-in torque", v11:"Full power",
+    v12h:"Star-Delta", v12:"Start in Y, switch to D at 80% n_N.",
+    c5:"Torque curve comparison.",
+    h6:"Step 6 - Starting methods",
+    m_dir:"Direct", m_yd:"Y/D", m_soft:"Soft start", m_fu:"VFD", m_rot:"Rotor R",
+    c6:"Current and torque during start.",
+    start_direct:"<h4>Direct on-line</h4><p>Machine at full voltage.</p><ul><li>Small motors</li><li>Max torque immediately</li><li>High grid stress</li></ul>",
+    start_yd:"<h4>Star-Delta</h4><p>Start Y, switch D at 80%.</p><ul><li>Classic 4-50 kW</li><li>Light load only</li><li>I_start to 1/3</li></ul>",
+    start_soft:"<h4>Soft starter</h4><p>Thyristor ramp 30-100%.</p><ul><li>Smooth run-up</li><li>No speed control</li><li>Cheaper than VFD</li></ul>",
+    start_fu:"<h4>VFD</h4><p>f and U together (U/f=const).</p><ul><li>Best method</li><li>Speed control</li><li>I_start ~ I_N</li></ul>",
+    start_rotor:"<h4>Rotor resistor</h4><p>Slip ring only: external R.</p><ul><li>High torque low current</li><li>Cranes, elevators</li></ul>",
+    h7:"Step 7 - Curves", c7a:"M(n) with operating point.", c7b:"I, Eta, cos phi.",
+    l7p:"Operating point is intersection of motor and load curves.",
+    h8:"Step 8 - Oscilloscope", sum:"Sum", c8a:"3 phase voltages 120 shifted.", c8b:"Phasor diagram cos phi.",
+    h9:"Step 9 - VFD",
+    l9p1:"VFD allows stepless speed control. U/f stays constant.",
+    l9h1:"Regions", l9l1:"Base region: U ~ f, M const", l9l2:"Field weak: U=U_N, M ~ 1/n",
+    l9p2:"Slide f and U on left.",
+    c9:"Curve family M(n) for different f."
+  }
+};
+
+var state = {
+  lang:"de", step:0,
+  rotor:"cage", conn:"star", poles:1,
+  U:400, f:50, ML:40, R2:1,
+  power:true, n:0, start:"direct"
+};
+
+function T(k){ return (I18N[state.lang] && I18N[state.lang][k]) || I18N.de[k] || k; }
+
+function applyI18N(){
+  document.documentElement.lang = state.lang;
+  var els = document.querySelectorAll("[data-t]");
+  for (var i=0;i<els.length;i++){
+    var k = els[i].getAttribute("data-t");
+    var v = T(k);
+    if (v.indexOf("<")>=0) els[i].innerHTML = v; else els[i].textContent = v;
+  }
+  renderStartInfo();
+}
+
+function setActive(container, btn){
+  var bs = container.querySelectorAll("button");
+  for (var i=0;i<bs.length;i++) bs[i].classList.remove("active");
+  btn.classList.add("active");
+}
+
+function bindSeg(id, prop, cast){
+  var el = document.getElementById(id);
+  el.addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if (!b || !b.dataset.v) return;
+    setActive(el, b);
+    state[prop] = cast ? cast(b.dataset.v) : b.dataset.v;
+  });
+}
+
+function setStep(i){
+  state.step = Math.max(0, Math.min(8, i));
+  var btns = document.querySelectorAll(".stepper button");
+  for (var j=0;j<btns.length;j++){
+    btns[j].classList.toggle("active", Number(btns[j].dataset.step) === state.step);
+  }
+  var cs = document.querySelectorAll(".step-content");
+  for (var k=0;k<cs.length;k++){
+    cs[k].classList.toggle("active", Number(cs[k].dataset.step) === state.step);
+  }
+}
+
+function renderStartInfo(){
+  var el = document.getElementById("startInfo");
+  if (!el) return;
+  var m = {direct:"start_direct", yd:"start_yd", soft:"start_soft", fu:"start_fu", rotor:"start_rotor"};
+  el.innerHTML = T(m[state.start]);
+}
+
+function nSync(){ return 60 * state.f / state.poles; }
+function Ustr(){ return state.conn==="star" ? state.U/Math.sqrt(3) : state.U; }
+function Mk(){ return 120 * Math.pow(Ustr()/230, 2) * Math.pow(50/state.f, 2); }
+function sK(){ return 0.25 * state.R2; }
+function Mkloss(s){ if (s<=0) return 0; return 2*Mk()/(s/sK() + sK()/s); }
+function Iline(s){
+  var In = 10, Istart = 6*In;
+  var fac = state.rotor==="slip" ? 1/state.R2 : 1;
+  var uf = Ustr()/230;
+  if (s>=1) return uf*Istart*fac;
+  return uf*(In + (Istart-In)*Math.pow(s, 1.2))*fac;
+}
+function eta(s){
+  if (s<=0 || s>=1) return 0;
+  return Math.max(0, Math.min(0.96, (1-s)*0.97 - Math.abs(s-0.04)*0.2));
+}
+function cosphi(s){
+  if (s>=1) return 0.25;
+  return Math.max(0.25, Math.min(0.92, 0.3 + 0.7*(1-s)));
+}
+function solve(){
+  if (!state.power) return {n:0, s:1, M:0, I:0, stable:false};
+  var ns = nSync(), best={n:0,s:1,diff:1e9,M:0};
+  for (var n=ns; n>=0; n-=ns/300){
+    var s = Math.max(1e-5, (ns-n)/ns);
+    var M = Mkloss(s);
+    var d = Math.abs(M - state.ML);
+    if (d<best.diff) best={n:n, s:s, diff:d, M:M};
+  }
+  best.I = Iline(best.s);
+  best.stable = best.s < sK()*1.05;
+  return best;
+}
+
+function updateKPIs(){
+  var op = solve();
+  state.n += (op.n - state.n)*0.05;
+  var ns = nSync();
+  var s = Math.max(0, (ns-state.n)/Math.max(1,ns));
+  var M = Mkloss(Math.max(1e-4, s));
+  var I = Iline(Math.max(1e-4, s));
+  var P = M*2*Math.PI*state.n/60/1000;
+  var e = eta(s), cp = cosphi(s);
+
+  document.getElementById("kNs").textContent = Math.round(ns);
+  document.getElementById("kN").textContent = Math.round(state.n);
+  document.getElementById("kS").textContent = (s*100).toFixed(1);
+  document.getElementById("kM").textContent = M.toFixed(1);
+  document.getElementById("kI").textContent = I.toFixed(1);
+  document.getElementById("kP").textContent = P.toFixed(2);
+  document.getElementById("kEta").textContent = (e*100).toFixed(0);
+  document.getElementById("kCos").textContent = cp.toFixed(2);
+
+  var stat = document.getElementById("stat");
+  if (!state.power){ stat.className="badge off"; stat.textContent=T("st_off"); }
+  else if (op.stable){ stat.className="badge ok"; stat.textContent=T("st_ok"); }
+  else { stat.className="badge warn"; stat.textContent=T("st_warn"); }
+
+  return op;
+}
+
+function prep(id){
+  var c = document.getElementById(id);
+  if (!c) return null;
+  var r = c.getBoundingClientRect();
+  if (r.width < 10) return null;
+  c.width = Math.floor(r.width);
+  return c.getContext("2d");
+}
+function grid(ctx, w, h, pX, pY){
+  ctx.fillStyle = "#070c18"; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = "#162033"; ctx.lineWidth = 1;
+  for (var i=1;i<10;i++){ var x=pX+(w-pX-10)*i/10; ctx.beginPath(); ctx.moveTo(x,pY); ctx.lineTo(x,h-pY); ctx.stroke(); }
+  for (var j=1;j<8;j++){ var y=pY+(h-pY*2)*j/8; ctx.beginPath(); ctx.moveTo(pX,y); ctx.lineTo(w-10,y); ctx.stroke(); }
+  ctx.strokeStyle = "#475569"; ctx.beginPath();
+  ctx.moveTo(pX,pY); ctx.lineTo(pX,h-pY); ctx.lineTo(w-10,h-pY); ctx.stroke();
+}
+
+var fieldAng = 0, rotorAng = 0;
+
+function drawIntro(){
+  var ctx = prep("cvIntro"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  ctx.fillStyle = "#070c18"; ctx.fillRect(0,0,w,h);
+  var cx = w/2, cy = h/2, R = Math.min(w,h)*0.35;
+  ctx.strokeStyle = "#334155"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();
+
+  var cols = ["#ef4444","#10b981","#3b82f6"], labs=["U","V","W"];
+  for (var i=0;i<3;i++){
+    var a = i*Math.PI*2/3;
+    ctx.fillStyle = cols[i];
+    ctx.beginPath(); ctx.arc(cx+Math.cos(a)*R*0.92, cy+Math.sin(a)*R*0.92, 8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#e5e7eb"; ctx.font = "bold 12px system-ui";
+    ctx.fillText(labs[i], cx+Math.cos(a)*R*1.1-4, cy+Math.sin(a)*R*1.1+4);
+  }
+
+  ctx.strokeStyle = "#f87171"; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+Math.cos(fieldAng)*R*0.78, cy+Math.sin(fieldAng)*R*0.78); ctx.stroke();
+
+  ctx.fillStyle = "#0b1220"; ctx.strokeStyle = "#64748b"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  for (var k=0;k<12;k++){
+    var aa = rotorAng + k*Math.PI/6;
+    ctx.fillStyle = "#60a5fa";
+    ctx.beginPath(); ctx.arc(cx+Math.cos(aa)*R*0.42, cy+Math.sin(aa)*R*0.42, 3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+Math.cos(rotorAng)*R*0.42, cy+Math.sin(rotorAng)*R*0.42); ctx.stroke();
+
+  ctx.fillStyle = "#fbbf24"; ctx.font = "12px system-ui";
+  var ns = nSync(); var s = Math.max(0,(ns-state.n)/Math.max(1,ns));
+  ctx.fillText("s = "+(s*100).toFixed(1)+" %", 12, 20);
+  ctx.fillStyle = "#f87171"; ctx.fillText("n_S (Feld)", 12, 40);
+  ctx.fillStyle = "#3b82f6"; ctx.fillText("n (Rotor)", 12, 58);
+}
+
+function drawStruct(){
+  var ctx = prep("cvStruct"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  ctx.fillStyle = "#070c18"; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle = "#152039"; ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
+  ctx.fillRect(30, 50, w-60, h-100); ctx.strokeRect(30, 50, w-60, h-100);
+  for (var i=0;i<12;i++){
+    ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+    var x = 50 + i*((w-100)/12);
+    ctx.beginPath(); ctx.moveTo(x, 54); ctx.lineTo(x, 38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, h-54); ctx.lineTo(x, h-38); ctx.stroke();
+  }
+  var cx = w/2, cy = h/2, R = (h-150)/2;
+  ctx.strokeStyle = "#64748b"; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();
+  for (var j=0;j<24;j++){
+    var a = j*Math.PI*2/24;
+    ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a)*R*0.85, cy+Math.sin(a)*R*0.85);
+    ctx.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R);
+    ctx.stroke();
+  }
+  var cols = ["#ef4444","#10b981","#3b82f6"];
+  for (var p=0;p<3;p++){
+    var ang = p*Math.PI*2/3;
+    ctx.fillStyle = cols[p];
+    for (var q=-1;q<=1;q++){
+      var aq = ang + q*0.15;
+      ctx.beginPath(); ctx.arc(cx+Math.cos(aq)*R*0.88, cy+Math.sin(aq)*R*0.88, 4, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.fillStyle = "#0b1220"; ctx.strokeStyle = "#64748b"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx, cy, R*0.55, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  for (var m=0;m<16;m++){
+    var am = rotorAng + m*Math.PI/8;
+    ctx.fillStyle = state.rotor==="cage" ? "#cbd5e1" : "#a78bfa";
+    ctx.beginPath(); ctx.arc(cx+Math.cos(am)*R*0.48, cy+Math.sin(am)*R*0.48, 4, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = "#94a3b8"; ctx.fillRect(20, cy-5, w-40, 10);
+  ctx.fillStyle = "#0b1220"; ctx.beginPath(); ctx.arc(cx, cy, R*0.15, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#1e293b"; ctx.strokeStyle = "#64748b";
+  ctx.fillRect(cx-50, 4, 100, 32); ctx.strokeRect(cx-50, 4, 100, 32);
+  ctx.fillStyle = "#e5e7eb"; ctx.font = "bold 12px system-ui";
+  ctx.fillText(state.conn==="star" ? "Y (Stern)" : "D (Dreieck)", cx-32, 25);
+  ctx.fillStyle = "#94a3b8"; ctx.font = "11px system-ui";
+  ctx.fillText("Stator", 45, h-28);
+  ctx.fillText("Rotor", cx-18, cy-R*0.68);
+}
+
+function drawField(){
+  var ctx = prep("cvField"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  ctx.fillStyle = "#070c18"; ctx.fillRect(0,0,w,h);
+  var cx = w/2, cy = h/2, R = Math.min(w,h)*0.32;
+  ctx.strokeStyle = "#334155"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();
+  var cols = ["#ef4444","#10b981","#3b82f6"], labs=["U","V","W"];
+  var sx = 0, sy = 0;
+  for (var i=0;i<3;i++){
+    var sa = i*Math.PI*2/3;
+    var mag = Math.cos(fieldAng - sa);
+    var x = Math.cos(sa)*mag*R*0.8;
+    var y = Math.sin(sa)*mag*R*0.8;
+    ctx.strokeStyle = cols[i]; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+x, cy+y); ctx.stroke();
+    sx += x; sy += y;
+    ctx.fillStyle = cols[i]; ctx.font = "bold 12px system-ui";
+    ctx.fillText(labs[i], cx+Math.cos(sa)*R*1.08-4, cy+Math.sin(sa)*R*1.08+4);
+  }
+  ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+sx*0.67, cy+sy*0.67); ctx.stroke();
+  ctx.fillStyle = "#fbbf24"; ctx.font = "bold 12px system-ui";
+  ctx.fillText("B_res", cx+sx*0.67+6, cy+sy*0.67);
+  var baseY = h-30;
+  ctx.strokeStyle = "#1e293b"; ctx.beginPath();
+  ctx.moveTo(20, baseY); ctx.lineTo(w-20, baseY); ctx.stroke();
+  for (var kk=0;kk<3;kk++){
+    ctx.strokeStyle = cols[kk]; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (var xx=0; xx<w-40; xx++){
+      var tt = fieldAng - xx*0.03 - kk*2*Math.PI/3;
+      var yy = baseY - Math.cos(tt)*18;
+      if (xx===0) ctx.moveTo(20+xx, yy); else ctx.lineTo(20+xx, yy);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawOp(){
+  var ctx = prep("cvOp"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  ctx.fillStyle = "#070c18"; ctx.fillRect(0,0,w,h);
+  var cx = w/2, cy = h/2, R = Math.min(w,h)*0.32;
+  ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle = "#0b1220"; ctx.strokeStyle = "#64748b"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.55,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#f87171"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+Math.cos(fieldAng)*R*0.85, cy+Math.sin(fieldAng)*R*0.85); ctx.stroke();
+  for (var i=0;i<4;i++){
+    var a = rotorAng*0.3 + i*Math.PI/2;
+    ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx+Math.cos(a)*R*0.42, cy+Math.sin(a)*R*0.42, 9, 0, Math.PI*1.7); ctx.stroke();
+  }
+  for (var j=0;j<4;j++){
+    var a2 = rotorAng + j*Math.PI/2 + Math.PI/4;
+    var x1 = cx+Math.cos(a2)*R*0.45, y1 = cy+Math.sin(a2)*R*0.45;
+    var tx = -Math.sin(a2), ty = Math.cos(a2);
+    ctx.strokeStyle = "#34d399"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1+tx*18, y1+ty*18); ctx.stroke();
+    ctx.fillStyle = "#34d399"; ctx.beginPath();
+    ctx.arc(x1+tx*18, y1+ty*18, 3, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = "#f87171"; ctx.font = "12px system-ui"; ctx.fillText("B (Drehfeld)", 12, 22);
+  ctx.fillStyle = "#fbbf24"; ctx.fillText("I induziert", 12, 40);
+  ctx.fillStyle = "#34d399"; ctx.fillText("F Lorentz", 12, 58);
+}
+
+function drawVar(){
+  var ctx = prep("cvVar"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  grid(ctx, w, h, 45, 25);
+  var lines = [
+    {c:"#22d3ee", sk:0.2, mk:1.0, lab:"Kaefig / D"},
+    {c:"#a78bfa", sk:0.6, mk:1.0, lab:"Schleifring R2 hoch"},
+    {c:"#fbbf24", sk:0.2, mk:0.33, lab:"Stern (1/3 M)"},
+    {c:"#34d399", sk:0.2, mk:1.0, lab:"Dreieck"}
+  ];
+  for (var i=0;i<lines.length;i++){
+    var L = lines[i];
+    ctx.strokeStyle = L.c; ctx.lineWidth = 2.3;
+    ctx.beginPath();
+    var first = true;
+    for (var p=0; p<=400; p++){
+      var nn = p/400;
+      var s = Math.max(1e-4, 1-nn);
+      var M = 2*L.mk/(s/L.sk + L.sk/s);
+      var x = 45 + (w-55)*nn;
+      var y = h-25 - (M/3.5)*(h-50);
+      if (first){ ctx.moveTo(x,y); first=false; } else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = L.c;
+    ctx.fillRect(w-200, 15+i*16, 14, 3);
+    ctx.fillStyle = "#cbd5e1"; ctx.font = "11px system-ui";
+    ctx.fillText(L.lab, w-182, 20+i*16);
+  }
+  ctx.fillStyle = "#94a3b8"; ctx.font = "10px system-ui";
+  ctx.fillText("n/n_S", w-50, h-8);
+  ctx.fillText("M/M_N", 4, 20);
+}
+
+function drawStart(){
+  var ctx = prep("cvStart"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  grid(ctx, w, h, 45, 25);
+  function profile(t){
+    var x = t/500;
+    switch(state.start){
+      case "direct": return {I:(1-x)*6+1, M:2*Math.max(0.1,(1-x))/((1-x)/0.2+0.2/(1-x+1e-3))};
+      case "yd":
+        if (x<0.6) return {I:(1-x)*2.3+1, M:(2*Math.max(0.1,(1-x))/((1-x)/0.2+0.2/(1-x+1e-3)))*0.33};
+        var xx = (x-0.6)/0.4;
+        return {I:(1-xx)*5+1, M:2*Math.max(0.1,(1-xx))/((1-xx)/0.2+0.2/(1-xx+1e-3))};
+      case "soft":
+        var u = Math.min(1, 0.3 + x*0.9);
+        return {I:(1-x)*3.5*u+1, M:(2*Math.max(0.1,(1-x))/((1-x)/0.2+0.2/(1-x+1e-3)))*u*u};
+      case "fu": return {I:1+0.5*(1-x), M:2.3*(1-x*0.5)};
+      case "rotor": return {I:(1-x)*2.5+1, M:2.5*Math.max(0.1,(1-x))/((1-x)/0.6+0.6/(1-x+1e-3))};
+    }
+    return {I:0,M:0};
+  }
+  ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (var i=0;i<=500;i++){
+    var d = profile(i);
+    var x = 45 + (w-55)*i/500;
+    var y = h-25 - (d.I/7)*(h-50);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (var j=0;j<=500;j++){
+    var d2 = profile(j);
+    var x2 = 45 + (w-55)*j/500;
+    var y2 = h-25 - (d2.M/3)*(h-50);
+    if (j===0) ctx.moveTo(x2,y2); else ctx.lineTo(x2,y2);
+  }
+  ctx.stroke();
+  ctx.fillStyle="#fbbf24"; ctx.fillRect(w-150,15,12,3);
+  ctx.fillStyle="#cbd5e1"; ctx.font="11px system-ui"; ctx.fillText("I(t)", w-132,19);
+  ctx.fillStyle="#22d3ee"; ctx.fillRect(w-150,32,12,3);
+  ctx.fillStyle="#cbd5e1"; ctx.fillText("M(t)", w-132,36);
+  ctx.fillStyle = "#94a3b8"; ctx.font = "10px system-ui";
+  ctx.fillText("t", w-20, h-8);
+}
+
+function drawTorque(op){
+  var ctx = prep("cvTorque"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  grid(ctx, w, h, 45, 25);
+  var ns = nSync();
+  var Mmax = Math.max(150, Mk()*1.15);
+  ctx.strokeStyle = "#22d3ee"; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  var first = true;
+  for (var i=0;i<=400;i++){
+    var n = ns*i/400;
+    var s = Math.max(1e-4,(ns-n)/ns);
+    var M = Mkloss(s);
+    var x = 45 + (w-55)*n/ns;
+    var y = h-25 - (M/Mmax)*(h-50);
+    if (first){ctx.moveTo(x,y);first=false;} else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "#f472b6"; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
+  var yL = h-25 - (state.ML/Mmax)*(h-50);
+  ctx.beginPath(); ctx.moveTo(45,yL); ctx.lineTo(w-10,yL); ctx.stroke();
+  ctx.setLineDash([]);
+  if (op && state.power){
+    var xOP = 45 + (w-55)*op.n/ns;
+    var yOP = h-25 - (op.M/Mmax)*(h-50);
+    ctx.fillStyle = "#fbbf24";
+    ctx.beginPath(); ctx.arc(xOP, yOP, 6, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1; ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.moveTo(xOP,yOP); ctx.lineTo(xOP,h-25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(xOP,yOP); ctx.lineTo(45,yOP); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.fillStyle = "#94a3b8"; ctx.font = "10px system-ui";
+  for (var k=0;k<=5;k++){
+    ctx.fillText(Math.round(ns*k/5), 40+(w-55)*k/5, h-10);
+    ctx.fillText(Math.round(Mmax*k/5), 5, h-25-(k/5)*(h-50));
+  }
+  ctx.fillStyle = "#22d3ee"; ctx.font = "11px system-ui"; ctx.fillText("M(n)", w-80, 20);
+  ctx.fillStyle = "#f472b6"; ctx.fillText("M Last", w-80, 35);
+}
+
+function drawCurrent(op){
+  var ctx = prep("cvCurrent"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  grid(ctx, w, h, 45, 25);
+  var ns = nSync();
+  ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (var i=0;i<=400;i++){
+    var n = ns*i/400;
+    var s = Math.max(1e-4,(ns-n)/ns);
+    var I = Iline(s);
+    var x = 45 + (w-55)*i/400;
+    var y = h-25 - (I/80)*(h-50);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "#34d399"; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (var j=0;j<=400;j++){
+    var n2 = ns*j/400;
+    var s2 = Math.max(1e-4,(ns-n2)/ns);
+    var e = eta(s2);
+    var x2 = 45 + (w-55)*j/400;
+    var y2 = h-25 - e*(h-50);
+    if (j===0) ctx.moveTo(x2,y2); else ctx.lineTo(x2,y2);
+  }
+  ctx.stroke();
+  ctx.strokeStyle = "#a78bfa"; ctx.lineWidth = 2; ctx.setLineDash([5,3]);
+  ctx.beginPath();
+  for (var k=0;k<=400;k++){
+    var n3 = ns*k/400;
+    var s3 = Math.max(1e-4,(ns-n3)/ns);
+    var cp = cosphi(s3);
+    var x3 = 45 + (w-55)*k/400;
+    var y3 = h-25 - cp*(h-50);
+    if (k===0) ctx.moveTo(x3,y3); else ctx.lineTo(x3,y3);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (op && state.power){
+    var xOP = 45 + (w-55)*op.n/ns;
+    ctx.fillStyle = "#fbbf24";
+    ctx.beginPath(); ctx.arc(xOP, h-25-(op.I/80)*(h-50), 5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.fillStyle = "#fbbf24"; ctx.font = "11px system-ui"; ctx.fillText("I(n)", w-80, 20);
+  ctx.fillStyle = "#34d399"; ctx.fillText("Eta", w-80, 35);
+  ctx.fillStyle = "#a78bfa"; ctx.fillText("cos phi", w-80, 50);
+}
+
+function drawScope(){
+  var ctx = prep("cvScope"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  ctx.fillStyle = "#050a14"; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle = "#0f2040"; ctx.lineWidth = 1;
+  for (var gx=0; gx<=w; gx+=w/10){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,h); ctx.stroke(); }
+  for (var gy=0; gy<=h; gy+=h/8){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(w,gy); ctx.stroke(); }
+  ctx.strokeStyle = "#1e3a5f"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+  var Up = Ustr()*Math.SQRT2;
+  var scale = (h/2-20)/700;
+  var cycles = 2;
+  var t0 = performance.now()/1000;
+  var chans = [
+    {id:"chU", c:"#ef4444", phi:0},
+    {id:"chV", c:"#10b981", phi:-2*Math.PI/3},
+    {id:"chW", c:"#3b82f6", phi:-4*Math.PI/3}
+  ];
+  for (var ci=0; ci<chans.length; ci++){
+    var ch = chans[ci];
+    var el = document.getElementById(ch.id);
+    if (!el || !el.checked) continue;
+    ctx.strokeStyle = ch.c; ctx.lineWidth = 2.3;
+    ctx.beginPath();
+    for (var x=0; x<w; x++){
+      var tt = (x/w)*cycles/state.f + t0;
+      var uu = Up*Math.sin(2*Math.PI*state.f*tt + ch.phi)*(state.power?1:0);
+      var yy = h/2 - uu*scale;
+      if (x===0) ctx.moveTo(x,yy); else ctx.lineTo(x,yy);
+    }
+    ctx.stroke();
+  }
+  var sumEl = document.getElementById("chSum");
+  if (sumEl && sumEl.checked){
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (var xs=0; xs<w; xs++){
+      var tts = (xs/w)*cycles/state.f + t0;
+      var sumv = 0;
+      for (var cs=0; cs<chans.length; cs++){
+        sumv += Up*Math.sin(2*Math.PI*state.f*tts + chans[cs].phi)*(state.power?1:0);
+      }
+      var ys = h/2 - sumv*scale;
+      if (xs===0) ctx.moveTo(xs,ys); else ctx.lineTo(xs,ys);
+    }
+    ctx.stroke();
+  }
+  var iEl = document.getElementById("chI");
+  if (iEl && iEl.checked){
+    var ns = nSync();
+    var s = Math.max(1e-4,(ns-state.n)/Math.max(1,ns));
+    var Iamp = Iline(s)*Math.SQRT2;
+    var phi = Math.acos(cosphi(s));
+    ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2;
+    ctx.setLineDash([5,3]);
+    ctx.beginPath();
+    for (var xi=0; xi<w; xi++){
+      var tti = (xi/w)*cycles/state.f + t0;
+      var ii = Iamp*Math.sin(2*Math.PI*state.f*tti - phi)*(state.power?1:0);
+      var yi = h/2 - ii*1.5;
+      if (xi===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.fillStyle = "#94a3b8"; ctx.font = "10px system-ui";
+  ctx.fillText("f="+state.f+" Hz  U="+Math.round(Ustr())+" V", 8, 14);
+  ctx.fillText("200 V/div  T="+Math.round(1000/state.f)+" ms", 8, h-6);
+}
+
+function drawPhasor(){
+  var ctx = prep("cvPhasor"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  ctx.fillStyle = "#050a14"; ctx.fillRect(0,0,w,h);
+  var cx = w/2, cy = h/2, R = Math.min(w,h)*0.36;
+  ctx.strokeStyle = "#0f2040";
+  for (var i=1;i<=4;i++){ ctx.beginPath(); ctx.arc(cx,cy,R*i/4,0,Math.PI*2); ctx.stroke(); }
+  ctx.strokeStyle = "#1e3a5f"; ctx.beginPath();
+  ctx.moveTo(cx-R-10, cy); ctx.lineTo(cx+R+10, cy);
+  ctx.moveTo(cx, cy-R-10); ctx.lineTo(cx, cy+R+10); ctx.stroke();
+  var phases = [
+    {l:"U_R", c:"#ef4444", a:0},
+    {l:"U_S", c:"#10b981", a:-2*Math.PI/3},
+    {l:"U_T", c:"#3b82f6", a:-4*Math.PI/3}
+  ];
+  for (var p=0;p<3;p++){
+    var ph = phases[p];
+    ctx.strokeStyle = ph.c; ctx.lineWidth = 3;
+    var x2 = cx+Math.cos(ph.a)*R*0.82, y2 = cy-Math.sin(ph.a)*R*0.82;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.fillStyle = ph.c; ctx.font = "bold 11px system-ui";
+    ctx.fillText(ph.l, x2+4, y2+4);
+  }
+  var ns = nSync();
+  var s = Math.max(1e-4,(ns-state.n)/Math.max(1,ns));
+  var phi = Math.acos(cosphi(s));
+  var Il = R*0.5*Math.min(1, Iline(s)/80);
+  ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(cx,cy);
+  ctx.lineTo(cx+Math.cos(-phi)*Il, cy-Math.sin(-phi)*Il); ctx.stroke();
+  ctx.fillStyle = "#fbbf24"; ctx.font = "bold 11px system-ui";
+  ctx.fillText("I_R", cx+Math.cos(-phi)*Il+4, cy-Math.sin(-phi)*Il);
+  ctx.strokeStyle = "#a78bfa"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx,cy,30,0,phi); ctx.stroke();
+  ctx.fillStyle = "#a78bfa"; ctx.font = "10px system-ui";
+  ctx.fillText("phi = "+(phi*180/Math.PI).toFixed(0)+" Grad", cx+33, cy-4);
+  ctx.fillText("cos phi = "+cosphi(s).toFixed(2), cx+33, cy+10);
+}
+
+function drawVFD(){
+  var ctx = prep("cvVFD"); if (!ctx) return;
+  var w = ctx.canvas.width, h = ctx.canvas.height;
+  grid(ctx, w, h, 45, 25);
+  var fs = [10,25,50,75,100];
+  var cols = ["#a78bfa","#f472b6","#22d3ee","#34d399","#fbbf24"];
+  var nsMax = 60*100/state.poles;
+  var Mmax = 250;
+  for (var i=0;i<fs.length;i++){
+    var f = fs[i];
+    var ns = 60*f/state.poles;
+    var flux = f<=50 ? 1 : 50/f;
+    var MK = 140 * flux*flux;
+    ctx.strokeStyle = cols[i]; ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    var first = true;
+    for (var k=0;k<=200;k++){
+      var n = ns*k/200;
+      var s = Math.max(1e-4,(ns-n)/ns);
+      var M = 2*MK/(s/0.25 + 0.25/s);
+      var x = 45 + (w-55)*n/nsMax;
+      var y = h-25 - (M/Mmax)*(h-50);
+      if (first){ctx.moveTo(x,y);first=false;} else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = cols[i]; ctx.font = "10px system-ui";
+    ctx.fillText(f+" Hz", 45+(w-55)*ns/nsMax-25, h-25-(MK/Mmax)*(h-50)-3);
+  }
+  var nsC = 60*state.f/state.poles;
+  ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+  var xC = 45 + (w-55)*nsC/nsMax;
+  ctx.beginPath(); ctx.moveTo(xC,25); ctx.lineTo(xC,h-25); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function tick(){
+  try {
+    var op = updateKPIs();
+    fieldAng += 2*Math.PI*state.f/60 * 0.016;
+    rotorAng += 2*Math.PI*state.n/3600 * 0.016;
+    if (state.step===0) drawIntro();
+    if (state.step===1) drawStruct();
+    if (state.step===2) drawField();
+    if (state.step===3) drawOp();
+    if (state.step===4) drawVar();
+    if (state.step===5) drawStart();
+    if (state.step===6){ drawTorque(op); drawCurrent(op); }
+    if (state.step===7){ drawScope(); drawPhasor(); }
+    if (state.step===8) drawVFD();
+  } catch(e){
+    console.error(e);
+  }
+  requestAnimationFrame(tick);
+}
+
+function autoDemo(){
+  var seq = [
+    function(){ setStep(0); },
+    function(){ setStep(1); },
+    function(){ setStep(2); },
+    function(){ setStep(3); },
+    function(){ setStep(4); },
+    function(){ var b = document.querySelector("#rotorSeg [data-v='slip']"); if (b) b.click(); },
+    function(){ var b = document.querySelector("#connSeg [data-v='delta']"); if (b) b.click(); },
+    function(){ setStep(5); },
+    function(){ var b = document.querySelector("#startSeg [data-v='fu']"); if (b) b.click(); },
+    function(){ setStep(6); },
+    function(){ var el=document.getElementById("inML"); el.value=80; el.dispatchEvent(new Event("input")); },
+    function(){ setStep(7); },
+    function(){ setStep(8); },
+    function(){ var el=document.getElementById("inF"); el.value=30; el.dispatchEvent(new Event("input")); },
+    function(){ var el=document.getElementById("inF"); el.value=50; el.dispatchEvent(new Event("input")); setStep(0); }
+  ];
+  var i=0;
+  function run(){
+    if (i<seq.length){ try{ seq[i](); } catch(e){} i++; setTimeout(run, 1500); }
+  }
+  run();
+}
+
+document.addEventListener("DOMContentLoaded", function(){
+  var langBtns = document.querySelectorAll(".lang button");
+  for (var i=0;i<langBtns.length;i++){
+    langBtns[i].addEventListener("click", function(e){
+      var all = document.querySelectorAll(".lang button");
+      for (var j=0;j<all.length;j++) all[j].classList.remove("active");
+      e.currentTarget.classList.add("active");
+      state.lang = e.currentTarget.dataset.lang;
+      applyI18N();
+    });
+  }
+  document.getElementById("startBtn").addEventListener("click", function(){
+    document.getElementById("demoOv").classList.add("hide");
+  });
+  document.getElementById("homeBtn").addEventListener("click", function(){
+    document.getElementById("demoOv").classList.remove("hide");
+    setStep(0);
+  });
+  document.getElementById("demoBtn").addEventListener("click", function(){
+    document.getElementById("demoOv").classList.add("hide");
+    autoDemo();
+  });
+  var stepBtns = document.querySelectorAll(".stepper button");
+  for (var k=0;k<stepBtns.length;k++){
+    stepBtns[k].addEventListener("click", function(e){
+      setStep(Number(e.currentTarget.dataset.step));
+    });
+  }
+  document.getElementById("prev").addEventListener("click", function(){ setStep(state.step-1); });
+  document.getElementById("next").addEventListener("click", function(){ setStep(state.step+1); });
+
+  bindSeg("rotorSeg", "rotor");
+  bindSeg("connSeg", "conn");
+  bindSeg("poleSeg", "poles", function(v){ return Number(v); });
+  bindSeg("startSeg", "start");
+  document.getElementById("startSeg").addEventListener("click", renderStartInfo);
+
+  document.getElementById("inU").addEventListener("input", function(e){
+    state.U = Number(e.target.value); document.getElementById("vU").textContent = state.U;
+  });
+  document.getElementById("inF").addEventListener("input", function(e){
+    state.f = Number(e.target.value); document.getElementById("vF").textContent = state.f;
+  });
+  document.getElementById("inML").addEventListener("input", function(e){
+    state.ML = Number(e.target.value); document.getElementById("vML").textContent = state.ML;
+  });
+  document.getElementById("inR2").addEventListener("input", function(e){
+    state.R2 = Number(e.target.value); document.getElementById("vR2").textContent = state.R2.toFixed(1);
+  });
+  document.getElementById("btnOn").addEventListener("click", function(){
+    state.power=true;
+    document.getElementById("btnOn").classList.add("active");
+    document.getElementById("btnOff").classList.remove("active");
+  });
+  document.getElementById("btnOff").addEventListener("click", function(){
+    state.power=false;
+    document.getElementById("btnOff").classList.add("active");
+    document.getElementById("btnOn").classList.remove("active");
+  });
+
+  applyI18N();
+  renderStartInfo();
+  requestAnimationFrame(tick);
+});
+</script>
+</body>
+</html>
